@@ -17,9 +17,33 @@ def transform(data:dict) -> pd.DataFrame:
     print(f"Total numbers of universities in Poland: {len(data)}")
     df["domains"] = [','.join(map(str,l)) for l in df["domains"]]
     df["web_pages"] = [','.join(map(str,l)) for l in df["web_pages"]]
-    #df["type"] = df[df["name"].str.contains("")]
+    
+    uni_type_dict = {
+        "Akademia": "Academy",
+        "Uniwersytet": "University",
+        "Politechnika": "Polytechnic",
+        "School": "Higher School",
+        "Academy": "Academy",
+        "University": "University",
+        "Academy": "Academy",
+        "College": "College",
+        "Higher School": "Higher School",
+        "Collegium": "Collegium",
+        "Institute": "Institute",
+    }
+
+    def check_type(name:str):
+        for keyword, type_ in uni_type_dict.items():
+            if keyword in name:
+                return type_
+        return "Other"
+    
+    df["type"] = df["name"].apply(check_type)
+
     df = df.reset_index(drop=True)
-    return df[["domains", "country", "web_pages", "name"]]
+    return df[["domains", "country", "web_pages", "name", "type"]]
+
+
 
 def load(df:pd.DataFrame):
     engine = create_engine("postgresql://postgres:123@localhost:5432/universities_etl")
