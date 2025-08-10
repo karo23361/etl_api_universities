@@ -4,7 +4,15 @@ import pandas as pd
 from sqlalchemy import create_engine
 import schedule 
 from datetime import time, timedelta, datetime
+import logging
+import time
 
+logging.basicConfig(
+    filename="etl.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
 def extract() -> dict:
     API_URL = "http://universities.hipolabs.com/search?country=Poland"
@@ -32,13 +40,11 @@ def transform(data:dict) -> pd.DataFrame:
         "Institute": "Institute",
     }
 
-    def check_type(name:str):
-        for keyword, type_ in uni_type_dict.items():
-            if keyword in name:
-                return type_
-        return "Other"
+    df["type"] = "Other"
     
-    df["type"] = df["name"].apply(check_type)
+    for keyword, type_ in uni_type_dict.items():
+        mask = df["name"].str.contains(keyword, na=False)
+        df.loc[mask, "type"] = type_ 
 
     df = df.reset_index(drop=True)
     return df[["domains", "country", "web_pages", "name", "type"]]
@@ -50,6 +56,21 @@ def load(df:pd.DataFrame):
     df.to_sql("universities", con=engine, if_exists="replace", index=False)
 
 
-data = extract()
-df = transform(data)
-load(df)
+
+
+def etl():
+    logging.info("ETL Started")
+    try:
+        data = extract()
+        df = transform(data)
+        load(df)
+    except Exception as e:
+        logging.error(f"ETL failed {e}")    
+
+
+if __name__ == "__main__":
+    logging.info("Schedule started, ETL process is running...")
+    schedule.every().minute.at(":00").do(etl)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
