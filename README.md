@@ -43,6 +43,3 @@ The data is fetched from the [Hipolabs Universities API](http://universities.hip
 ---
 
 **Author:** Karol Szeląg
-
-```
-
